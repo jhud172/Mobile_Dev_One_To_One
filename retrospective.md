@@ -1,0 +1,3 @@
+# Retrospective
+
+Trainer Hub met the main project goal of producing a coherent, premium trainer-first Android application that works offline and demonstrates modern Android API usage. The strongest decisions were keeping scope narrow, removing risky external dependencies, and designing the app around seeded Room data so every feature stayed markable. The main trade-off was using local payment and privacy flows rather than live backend integrations, but that improved reliability and still preserved API readiness through repository abstractions. With more time, I would add a real Spring Boot service, richer payment processing, and stronger automated UI testing, while keeping the current one-trainer-per-client rule and premium workflow focus intact.
