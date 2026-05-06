@@ -10,14 +10,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -36,7 +37,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import uk.ac.cardiff.trainerhub.data.repository.TrainerHubRepository
 import uk.ac.cardiff.trainerhub.domain.TrainerProfile
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
 import uk.ac.cardiff.trainerhub.ui.components.EmptyStateCard
+import uk.ac.cardiff.trainerhub.ui.components.InfoRow
+import uk.ac.cardiff.trainerhub.ui.components.PremiumCard
 import uk.ac.cardiff.trainerhub.ui.components.SectionTitle
 import uk.ac.cardiff.trainerhub.ui.components.StatusChip
 
@@ -68,6 +72,7 @@ class TrainerProfileViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrainerProfileScreen(
     repository: TrainerHubRepository,
@@ -81,8 +86,14 @@ fun TrainerProfileScreen(
     val profile = uiState.profile
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Trainer profile") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -95,6 +106,7 @@ fun TrainerProfileScreen(
             )
         },
     ) { innerPadding ->
+        AppBackground {
         if (profile == null) {
             Column(
                 modifier = Modifier
@@ -119,38 +131,32 @@ fun TrainerProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    Card {
-                        Column(
-                            modifier = Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            SectionTitle(
-                                title = profile.fullName,
-                                subtitle = profile.headline,
-                            )
-                            if (profile.isVerified) {
-                                StatusChip("VERIFIED")
-                            }
-                            Text(profile.bio)
+                    PremiumCard(tonal = true) {
+                        SectionTitle(
+                            title = profile.fullName,
+                            subtitle = profile.headline,
+                        )
+                        if (profile.isVerified) {
+                            StatusChip("VERIFIED")
                         }
+                        Text(
+                            text = profile.bio,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
 
                 item {
-                    Card {
-                        Column(
-                            modifier = Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Text("Working setup", fontWeight = FontWeight.SemiBold)
-                            Text(
-                                if (profile.operatesIndependently) {
-                                    "Independent coaching is supported."
-                                } else {
-                                    "Independent coaching is not enabled."
-                                },
-                            )
-                        }
+                    PremiumCard {
+                        InfoRow(
+                            label = "Working setup",
+                            value = if (profile.operatesIndependently) {
+                                "Independent coaching is enabled."
+                            } else {
+                                "Independent coaching is not enabled in this profile."
+                            },
+                        )
                     }
                 }
 
@@ -171,17 +177,18 @@ fun TrainerProfileScreen(
                     }
                 } else {
                     items(profile.gymAffiliations) { gym ->
-                        Card(
+                        PremiumCard(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
                                 text = gym,
-                                modifier = Modifier.padding(18.dp),
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
                 }
             }
+        }
         }
     }
 }

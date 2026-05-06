@@ -109,10 +109,6 @@ class DemoDataSeeder(
             ConsentRecordEntity("consent-4", "client-noah", "DATA_PROCESSING", true, now - 9 * day, "Assessment intake consent recorded."),
         )
 
-        database.runInTransaction {
-            // Room transactions cannot call suspend DAO methods directly; handled outside.
-        }
-
         database.trainerDao().insertAll(listOf(trainer))
         database.gymDao().insertAll(gyms)
         database.membershipDao().insertAll(memberships)
@@ -130,4 +126,3 @@ class DemoDataSeeder(
 
     fun newId(prefix: String): String = "$prefix-${UUID.randomUUID()}"
 }
-

@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,18 +43,25 @@ import kotlinx.coroutines.launch
 import uk.ac.cardiff.trainerhub.data.repository.TrainerHubRepository
 import uk.ac.cardiff.trainerhub.domain.BusinessRules
 import uk.ac.cardiff.trainerhub.domain.InvoiceDraft
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
+import uk.ac.cardiff.trainerhub.ui.components.PremiumButton
+import androidx.compose.ui.text.input.KeyboardType
 import java.time.LocalDate
 import java.time.ZoneId
 
 data class InvoiceEditorUiState(
-    val title: String = "",
-    val amount: String = "",
-    val dueDate: String = "",
+    val title: String = "Coaching invoice",
+    val amount: String = "100.00",
+    val dueDate: String = defaultInvoiceDueDate(),
     val notes: String = "",
     val errors: List<String> = emptyList(),
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
 )
+
+private fun defaultInvoiceDueDate(): String {
+    return LocalDate.now().plusDays(7).toString()
+}
 
 class InvoiceEditorViewModel(
     private val repository: TrainerHubRepository,
@@ -144,6 +155,7 @@ class InvoiceEditorViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvoiceEditorScreen(
     repository: TrainerHubRepository,
@@ -166,8 +178,14 @@ fun InvoiceEditorScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Create invoice") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -179,7 +197,29 @@ fun InvoiceEditorScreen(
                 },
             )
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                PremiumButton(
+                    onClick = viewModel::saveInvoice,
+                    enabled = !uiState.isSaving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("Save invoice")
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
+        AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -188,13 +228,13 @@ fun InvoiceEditorScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = contentPadding.calculateTopPadding() + 16.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 96.dp,
                 )
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Enter the due date as YYYY-MM-DD and the amount in pounds, for example 180.00.",
+                text = "Use due date format YYYY-MM-DD and enter amount in pounds, for example 180.00.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -209,6 +249,7 @@ fun InvoiceEditorScreen(
                 onValueChange = viewModel::updateAmount,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Amount") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
             OutlinedTextField(
                 value = uiState.dueDate,
@@ -230,18 +271,7 @@ fun InvoiceEditorScreen(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-
-            Button(
-                onClick = viewModel::saveInvoice,
-                enabled = !uiState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator()
-                } else {
-                    Text("Save invoice")
-                }
-            }
+        }
         }
     }
 }

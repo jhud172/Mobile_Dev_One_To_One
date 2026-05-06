@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,13 +43,16 @@ import kotlinx.coroutines.launch
 import uk.ac.cardiff.trainerhub.data.repository.TrainerHubRepository
 import uk.ac.cardiff.trainerhub.domain.BusinessRules
 import uk.ac.cardiff.trainerhub.domain.NewClientDraft
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
+import uk.ac.cardiff.trainerhub.ui.components.PremiumButton
+import androidx.compose.ui.text.input.KeyboardType
 
 data class AddClientUiState(
-    val fullName: String = "",
-    val email: String = "",
-    val phone: String = "",
-    val goal: String = "",
-    val notes: String = "",
+    val fullName: String = "Demo Client",
+    val email: String = "demo.client@example.com",
+    val phone: String = "07000000000",
+    val goal: String = "Start a structured coaching plan",
+    val notes: String = "Created during the assessment demo.",
     val errors: List<String> = emptyList(),
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
@@ -116,6 +123,7 @@ class AddClientViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddClientScreen(
     repository: TrainerHubRepository,
@@ -137,8 +145,14 @@ fun AddClientScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Add client") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -150,7 +164,29 @@ fun AddClientScreen(
                 },
             )
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                PremiumButton(
+                    onClick = viewModel::saveClient,
+                    enabled = !uiState.isSaving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("Save client")
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
+        AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -159,13 +195,13 @@ fun AddClientScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = contentPadding.calculateTopPadding() + 16.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 96.dp,
                 )
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Create a new premium coaching client. The app will assign the client to the current verified trainer automatically.",
+                text = "Add a client record. The app links the client to the current trainer automatically.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -181,6 +217,7 @@ fun AddClientScreen(
                 onValueChange = viewModel::updateEmail,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Email") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
             )
             OutlinedTextField(
@@ -188,6 +225,7 @@ fun AddClientScreen(
                 onValueChange = viewModel::updatePhone,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Phone") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 singleLine = true,
             )
             OutlinedTextField(
@@ -211,20 +249,7 @@ fun AddClientScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-
-            Button(
-                onClick = viewModel::saveClient,
-                enabled = !uiState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(4.dp),
-                    )
-                } else {
-                    Text("Save client")
-                }
-            }
+        }
         }
     }
 }

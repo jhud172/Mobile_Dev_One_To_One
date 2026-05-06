@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
             TrainerHubTheme {
                 TrainerHubApp(
                     repository = container.repository,
+                    mobileRepository = container.mobileRepository,
                     reminderScheduler = container.reminderScheduler,
                 )
             }

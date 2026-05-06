@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,14 +45,17 @@ import uk.ac.cardiff.trainerhub.domain.BusinessRules
 import uk.ac.cardiff.trainerhub.domain.ExercisePrescription
 import uk.ac.cardiff.trainerhub.domain.PlanDraft
 import uk.ac.cardiff.trainerhub.domain.PlanWeekDraft
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
+import uk.ac.cardiff.trainerhub.ui.components.PremiumButton
+import androidx.compose.ui.text.input.KeyboardType
 
 data class PlanEditorUiState(
-    val planName: String = "",
-    val goal: String = "",
+    val planName: String = "Strength block",
+    val goal: String = "Build confident movement",
     val weekNumber: String = "1",
-    val exerciseName: String = "",
-    val sets: String = "",
-    val reps: String = "",
+    val exerciseName: String = "Squat",
+    val sets: String = "3",
+    val reps: String = "8",
     val notes: String = "",
     val errors: List<String> = emptyList(),
     val isSaving: Boolean = false,
@@ -164,6 +171,7 @@ class PlanEditorViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanEditorScreen(
     repository: TrainerHubRepository,
@@ -186,8 +194,14 @@ fun PlanEditorScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Create plan") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -199,7 +213,29 @@ fun PlanEditorScreen(
                 },
             )
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                PremiumButton(
+                    onClick = viewModel::savePlan,
+                    enabled = !uiState.isSaving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("Save plan")
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
+        AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -208,13 +244,13 @@ fun PlanEditorScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = contentPadding.calculateTopPadding() + 16.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 96.dp,
                 )
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Create one plan block with one starting week and one exercise entry. Older plans remain visible in the client history.",
+                text = "Create one starting plan block for this client. Older plans stay in the client history.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -235,6 +271,7 @@ fun PlanEditorScreen(
                 onValueChange = viewModel::updateWeekNumber,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Week number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             OutlinedTextField(
                 value = uiState.exerciseName,
@@ -247,6 +284,7 @@ fun PlanEditorScreen(
                 onValueChange = viewModel::updateSets,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Sets") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             OutlinedTextField(
                 value = uiState.reps,
@@ -268,18 +306,7 @@ fun PlanEditorScreen(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-
-            Button(
-                onClick = viewModel::savePlan,
-                enabled = !uiState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator()
-                } else {
-                    Text("Save plan")
-                }
-            }
+        }
         }
     }
 }

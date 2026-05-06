@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.runtime.Composable
@@ -42,7 +41,9 @@ import kotlinx.coroutines.flow.stateIn
 import uk.ac.cardiff.trainerhub.data.repository.TrainerHubRepository
 import uk.ac.cardiff.trainerhub.domain.DashboardSnapshot
 import uk.ac.cardiff.trainerhub.domain.TrainerProfile
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
 import uk.ac.cardiff.trainerhub.ui.components.EmptyStateCard
+import uk.ac.cardiff.trainerhub.ui.components.PremiumCard
 import uk.ac.cardiff.trainerhub.ui.components.SectionTitle
 import uk.ac.cardiff.trainerhub.ui.components.StatCard
 import uk.ac.cardiff.trainerhub.ui.components.StatusChip
@@ -81,6 +82,7 @@ class DashboardViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     repository: TrainerHubRepository,
@@ -96,8 +98,14 @@ fun DashboardScreen(
     val trainerProfile = uiState.trainerProfile
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = {
                     Column {
                         Text("Trainer Hub")
@@ -119,6 +127,7 @@ fun DashboardScreen(
             )
         },
     ) { innerPadding ->
+        AppBackground {
         if (snapshot == null) {
             Column(
                 modifier = Modifier
@@ -144,14 +153,11 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
+                    PremiumCard(
+                        tonal = true,
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -159,6 +165,9 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(end = 12.dp),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Text(
@@ -180,6 +189,7 @@ fun DashboardScreen(
                             Text(
                                 text = trainerProfile?.bio ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -221,23 +231,17 @@ fun DashboardScreen(
                     }
                 } else {
                     items(snapshot.todaySessions) { session ->
-                        Card {
-                            Column(
-                                modifier = Modifier.padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = session.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    text = "${prettyDateTime(session.scheduledAt)} • ${session.location}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                StatusChip(session.status)
-                            }
+                        PremiumCard {
+                            Text(
+                                text = session.title,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = "${prettyDateTime(session.scheduledAt)} • ${session.location}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            StatusChip(session.status)
                         }
                     }
                 }
@@ -258,16 +262,16 @@ fun DashboardScreen(
                     }
                 } else {
                     items(snapshot.alerts) { alert ->
-                        Card {
+                        PremiumCard(tonal = true) {
                             Text(
                                 text = alert,
-                                modifier = Modifier.padding(18.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
                     }
                 }
             }
+        }
         }
     }
 }

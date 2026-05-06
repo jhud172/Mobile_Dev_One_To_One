@@ -23,8 +23,16 @@ class AppPreferencesRepository(
     val remindersEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.remindersEnabled] ?: true }
 
     val clientSortMode: Flow<ClientSortMode> = context.dataStore.data.map { prefs ->
-        prefs[Keys.clientSortMode]?.let { runCatching { ClientSortMode.valueOf(it) }.getOrNull() }
-            ?: ClientSortMode.NEXT_SESSION
+        val savedValue = prefs[Keys.clientSortMode]
+        if (savedValue == null) {
+            ClientSortMode.NEXT_SESSION
+        } else {
+            try {
+                ClientSortMode.valueOf(savedValue)
+            } catch (_: Exception) {
+                ClientSortMode.NEXT_SESSION
+            }
+        }
     }
 
     suspend fun setRemindersEnabled(enabled: Boolean) {

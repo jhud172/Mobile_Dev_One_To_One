@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,20 +43,27 @@ import kotlinx.coroutines.launch
 import uk.ac.cardiff.trainerhub.data.repository.TrainerHubRepository
 import uk.ac.cardiff.trainerhub.domain.BusinessRules
 import uk.ac.cardiff.trainerhub.domain.SessionDraft
+import uk.ac.cardiff.trainerhub.ui.components.AppBackground
+import uk.ac.cardiff.trainerhub.ui.components.PremiumButton
+import androidx.compose.ui.text.input.KeyboardType
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
 data class SessionEditorUiState(
-    val date: String = "",
-    val time: String = "",
-    val location: String = "",
-    val sessionType: String = "",
+    val date: String = defaultSessionDate(),
+    val time: String = "10:00",
+    val location: String = "Foundry West",
+    val sessionType: String = "Strength",
     val notes: String = "",
     val errors: List<String> = emptyList(),
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
 )
+
+private fun defaultSessionDate(): String {
+    return LocalDate.now().plusDays(1).toString()
+}
 
 class SessionEditorViewModel(
     private val repository: TrainerHubRepository,
@@ -157,6 +168,7 @@ class SessionEditorViewModel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionEditorScreen(
     repository: TrainerHubRepository,
@@ -179,8 +191,14 @@ fun SessionEditorScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
                 title = { Text("Create session") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -192,7 +210,29 @@ fun SessionEditorScreen(
                 },
             )
         },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surface) {
+                PremiumButton(
+                    onClick = viewModel::saveSession,
+                    enabled = !uiState.isSaving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Text("Save session")
+                    }
+                }
+            }
+        },
     ) { innerPadding ->
+        AppBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -201,13 +241,13 @@ fun SessionEditorScreen(
                     start = 16.dp,
                     end = 16.dp,
                     top = contentPadding.calculateTopPadding() + 16.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                    bottom = contentPadding.calculateBottomPadding() + 96.dp,
                 )
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Enter the session date as YYYY-MM-DD and time as HH:MM.",
+                text = "Use date format YYYY-MM-DD and time format HH:MM.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -222,6 +262,7 @@ fun SessionEditorScreen(
                 onValueChange = viewModel::updateTime,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Time") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             OutlinedTextField(
                 value = uiState.location,
@@ -249,18 +290,7 @@ fun SessionEditorScreen(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-
-            Button(
-                onClick = viewModel::saveSession,
-                enabled = !uiState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator()
-                } else {
-                    Text("Save session")
-                }
-            }
+        }
         }
     }
 }
