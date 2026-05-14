@@ -1,16 +1,153 @@
-# Android API Description
+# Android API And Backend Integration
 
-Trainer Hub uses modern Android APIs that directly support the assessment goals of reliability, premium UX, and maintainable architecture. The UI is built with **Jetpack Compose**, which provides declarative screen construction and reusable components for the dashboard, client list, client detail tabs, and forms. Compose makes it easier to keep a consistent premium interface because shared cards, badges, empty states, and dialogs can be implemented once and reused across the app.
+## Summary
 
-Navigation between screens uses **Navigation Compose**. This is appropriate because the application is organised as a set of connected flows: dashboard, clients, add-client, client detail, plan editing, and settings. Navigation Compose keeps these flows explicit and safe, while allowing arguments such as a selected client ID to be passed cleanly between screens.
+The One To One Android app uses Android platform APIs, Jetpack libraries, and a dedicated Spring Boot mobile API to provide a role-aware mobile experience for public users, clients, trainers, and gym accounts.
 
-Screen state is managed with **ViewModel** and **StateFlow**. ViewModel is used so data survives configuration changes such as rotation and so UI logic is not embedded inside composables. StateFlow provides observable reactive state for lists, dashboards, detail screens, and forms. This supports lifecycle-safe updates and keeps the UI responsive when repository data changes.
+The Android app talks to the hosted website through HTTPS. It does not connect directly to PostgreSQL and does not reuse browser-only Thymeleaf form flows.
 
-Persistent local storage is handled by **Room**. Room is suitable because the assessment requires the app to work reliably on a clean install and without relying on unstable external services. The app stores trainers, gyms, clients, assignments, plans, sessions, invoices, payments, notes, and consent records in a structured local database. Room also supports future backend readiness because the same repository contracts can later be implemented against a Spring Boot API while preserving the current domain model.
+## Android APIs And Libraries
 
-Lightweight preference storage uses **DataStore**. DataStore is used for settings such as reminder enablement, preferred client sort mode, and seeded-demo bootstrap flags. It is more modern and reliable than older SharedPreferences-based patterns and fits well with coroutine and Flow usage.
+### Jetpack Compose
 
-To support one controlled beyond-module enhancement, the app uses **WorkManager** for local reminders. WorkManager is suitable for deferred and periodic background work such as reminding the trainer about upcoming sessions or overdue invoices. This demonstrates deeper Android capability while remaining stable because it does not require a live backend. If notification permission is not granted, the reminder flow degrades safely rather than crashing.
+Jetpack Compose is used for the full user interface:
 
-The app also uses core **Material 3** Android components for visual consistency and accessibility. Together, Compose, Navigation, ViewModel, StateFlow, Room, DataStore, and WorkManager form a modern Android stack that is well suited to a professional trainer workflow and easy to justify in relation to the app’s actual behaviour.
+- Public welcome and explore screens.
+- Login and signup forms.
+- Role-aware bottom navigation.
+- Home, calendar, day plan, training log, chat, role list, and account screens.
+- Reusable premium UI components such as cards, buttons, status chips, section titles, and empty/error states.
 
+Compose state is used to show loading, validation, error, empty, demo, and authenticated states.
+
+### Material 3
+
+Material 3 provides the base design system. The app customises colours, spacing, button behaviour, cards, and navigation to match the premium One To One direction while still following Android interaction expectations.
+
+### Kotlin Coroutines And StateFlow
+
+Coroutines are used for network calls, session restore, login, signup, logout, chat, calendar loading, day completion, and training log submission.
+
+StateFlow is used for authentication state so the UI can automatically switch between public, loading, demo, and role-specific authenticated shells.
+
+### Android Keystore
+
+Android Keystore protects remembered login state. The app stores only an opaque bearer token encrypted with AES/GCM. The app does not store passwords, database credentials, payment secrets, or AI provider keys.
+
+### Room
+
+Room remains in the project as a local data layer for demo and fallback behaviour. This keeps the app demonstrable during assessment even if the hosted backend is unavailable.
+
+### WorkManager
+
+WorkManager remains available for reminder scheduling. It supports local reminder behaviour without needing the app to stay open.
+
+## Mobile API Base URL
+
+The app is configured to use the hosted Render web service:
+
+```text
+https://two025-group14-c24071109-1.onrender.com
+```
+
+The server URL is no longer exposed as a login page input. Existing saved local development URLs such as `localhost`, `127.0.0.1`, and `10.0.2.2` are ignored so the app uses the configured hosted URL by default.
+
+## Spring Boot Mobile API
+
+The website exposes a dedicated mobile API under:
+
+```text
+/api/mobile/**
+```
+
+These endpoints reuse existing website users, roles, password hashing, validation, and database tables. They are JSON endpoints for Android rather than HTML pages for browsers.
+
+### Authentication Endpoints
+
+```text
+POST /api/mobile/auth/login
+POST /api/mobile/auth/logout
+POST /api/mobile/auth/signup/client
+POST /api/mobile/auth/signup/trainer
+POST /api/mobile/auth/signup/gym
+GET  /api/mobile/me
+```
+
+Authentication returns an opaque mobile token. Server-side tokens are stored as hashes with expiry and revocation support.
+
+### Core App Endpoints
+
+```text
+GET  /api/mobile/home
+GET  /api/mobile/calendar/month?month=YYYY-MM
+GET  /api/mobile/calendar/day?date=YYYY-MM-DD
+POST /api/mobile/day/tasks/{id}/complete
+GET  /api/mobile/training
+POST /api/mobile/training/logs
+GET  /api/mobile/chat/history
+POST /api/mobile/chat/message
+GET  /api/mobile/notifications
+POST /api/mobile/notifications/{id}/read
+GET  /api/mobile/profile
+```
+
+### Client Endpoints
+
+```text
+GET /api/mobile/client/trainer
+GET /api/mobile/client/plan
+GET /api/mobile/client/logs
+```
+
+### Trainer Endpoints
+
+```text
+GET  /api/mobile/trainer/clients
+GET  /api/mobile/trainer/clients/{id}
+POST /api/mobile/trainer/clients/{id}/sessions
+POST /api/mobile/trainer/clients/{id}/plans
+```
+
+Trainer session and plan actions are protected by backend rules:
+
+- The trainer must be verified.
+- The client must have an active trainer-client relationship with that trainer.
+- Assigned sessions and plans write to the website database.
+
+### Gym Endpoints
+
+```text
+GET  /api/mobile/gym/trainers
+GET  /api/mobile/gym/requests
+POST /api/mobile/gym/requests/{id}/approve
+```
+
+Gym request review actions are role-restricted and preserve server-side reviewer metadata.
+
+## Error Handling
+
+The app handles:
+
+- Local validation errors before submission.
+- Loading states while requests are running.
+- Server error messages from failed API responses.
+- Empty lists when no records exist.
+- Demo mode when the live service cannot be used.
+- Logged-out state when no valid session exists.
+
+## Security Requirements
+
+The Android app must never contain:
+
+- PostgreSQL internal or external database URLs.
+- Database usernames or passwords.
+- Stripe secret keys.
+- OpenAI keys.
+- Render private environment values.
+- Any server-only secret.
+
+Android only needs the HTTPS web API base URL. Database access remains behind the Spring Boot backend.
+
+## Current Deployment Status
+
+The live Render website is reachable. For production Android integration, the deployed website must include the mobile API package and expose the `/api/mobile/**` endpoints. If those endpoints are not deployed, the Android app can open but real API login and data screens will return server errors until the backend deployment is updated.
